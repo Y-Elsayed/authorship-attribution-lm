@@ -63,7 +63,8 @@ class NgramAuthorshipClassifier:
                 if self.classify(sample) == author:
                     correct+=1
             accuracy = correct/total
-            print(f"{author} \t {accuracy*100:.2f}% correct")
+            if show_accuracy:
+                print(f"{author} \t {accuracy*100:.2f}% correct")
             all_accuracies.append(accuracy)
         return sum(all_accuracies)/len(all_accuracies) # Returning the average accuracy of all authors to use in the notebook to choose which models and ngrams to use
 
