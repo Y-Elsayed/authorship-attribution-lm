@@ -1,9 +1,11 @@
-from nltk.lm.models import MLE
-from nltk.lm import StupidBackoff, Laplace
-from nltk.lm.smoothing import KneserNey,AbsoluteDiscounting
-from nltk.tokenize import word_tokenize as nltk_word_tokenize
-from nltk.util import everygrams
-from nltk.lm.preprocessing import padded_everygram_pipeline 
+from nltk.lm import MLE, Laplace
+from nltk.lm.models import StupidBackoff, KneserNeyInterpolated
+from nltk.util import ngrams
+from nltk.lm.preprocessing import padded_everygram_pipeline
+from collections import Counter
+
+
+
 
 class NgramAuthorshipClassifier:
 
@@ -15,33 +17,43 @@ class NgramAuthorshipClassifier:
 
     def train(self, authors_data): # not sure if this is the best way to pass the authors data but it will be a map of author to their processed text
         print("Training LMs... (this may take a while)")
-        for k,v in authors_data.items():
+        for k, v in authors_data.items():
+
             train_data, vocab = padded_everygram_pipeline(self.n, v)
-            if self.smoothing == "abs":
-                model = AbsoluteDiscounting(self.n)
-            elif self.smoothing == "sb":
-                model = StupidBackoff(self.n)
+            vocab_counter = Counter(vocab)
+
+
+            if self.smoothing == "sb":
+                model = StupidBackoff(order = self.n) 
             elif self.smoothing == "lp":
-                model = Laplace(self.n)
+                model = Laplace(order = self.n) 
             elif self.smoothing == "kn":
-                model = KneserNey(self.n)
+                model = KneserNeyInterpolated(order=self.n)
             else:
                 if self.smoothing != "mle":
                     print(f"The {self.smoothing} smoothing is not supported. Defaulting to MLE")
                 model = MLE(self.n)
-
-            model.fit(train_data,vocab)
+            
+            model.fit(train_data, vocab_counter)
             self.models[k] = model
 
 
     def classify(self, sample):
-        ngrams_lst = list(everygrams(sample, self.n))
-        perplexities = {author: model.perplexity(ngrams_lst) for author,model in self.models.items()}
+        ngrams_lst = list(ngrams(sample, self.n))
+
+        perplexities = {}
+        for author, model in self.models.items():
+            try:
+                perplexities[author] = model.perplexity(ngrams_lst)
+            except ZeroDivisionError: # I added this the zero division error that occured when the perplexity was zero
+                perplexities[author] = float('inf')
+
         return min(perplexities, key=perplexities.get)
 
-    def evaluate_devset(self, dev_data):
+    def evaluate_devset(self, dev_data, show_accuracy = False):
         print("Results on dev set:")
         for author, samples in dev_data.items():
+            all_accuracies = []
             correct = 0
             total = len(samples)
             if total == 0: 
@@ -50,7 +62,11 @@ class NgramAuthorshipClassifier:
             for sample in samples:
                 if self.classify(sample) == author:
                     correct+=1
-            print(f"{author} \t {correct/total:.2f} correct")
+            accuracy = correct/total
+            if show_accuracy:
+                print(f"{author} \t {accuracy*100:.2f}% correct")
+            all_accuracies.append(accuracy)
+        return sum(all_accuracies)/len(all_accuracies) # Returning the average accuracy of all authors to use in the notebook to choose which models and ngrams to use
 
     def predict(self, test_data,save_predictions = True):
         predictions = []
