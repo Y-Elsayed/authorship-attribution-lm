@@ -9,7 +9,7 @@ from collections import Counter
 
 class NgramAuthorshipClassifier:
 
-    def __init__(self, n = 2, smoothing="mle"):
+    def __init__(self, n = 1, smoothing="lp"):
         self.n = int(n)
         self.smoothing = smoothing
         self.models = {}
