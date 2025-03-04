@@ -22,7 +22,7 @@ class DataProcessor:
     def process_file(self,file_path):
         text = self.__load_file(file_path=file_path)
         sentences = self.__file_sentences(file_text=text)
-        return sentences
+        return (sentences,None)
     
     def process_split_file(self,file_path):
         text = self.__load_file(file_path=file_path)
