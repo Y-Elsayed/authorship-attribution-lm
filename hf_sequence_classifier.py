@@ -30,7 +30,7 @@ class SequenceClassifier:
                 train_texts.append(sample)
                 train_labels.append(self.label2id[author])
 
-        train_dataset = AuthorsDataset(train_texts, train_labels, self.tokenizer, max_length)
+        train_dataset = AuthorsDataset(train_texts, train_labels, self.tokenizer, self.max_length)
 
         training_args = TrainingArguments(
             output_dir='./results',
