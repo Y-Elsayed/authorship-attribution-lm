@@ -1,6 +1,7 @@
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, Trainer, TrainingArguments
 import torch
 from authors_dataset import AuthorsDataset
+from transformers import DataCollatorWithPadding
 
 class SequenceClassifier:
     def __init__(self, num_labels, model_name="bert-base-uncased",max_length=512):
@@ -31,6 +32,7 @@ class SequenceClassifier:
                 train_labels.append(self.label2id[author])
 
         train_dataset = AuthorsDataset(train_texts, train_labels, self.tokenizer, self.max_length)
+        data_collator = DataCollatorWithPadding(tokenizer=self.tokenizer, padding=True)
 
         training_args = TrainingArguments(
             output_dir='./results',
@@ -41,13 +43,14 @@ class SequenceClassifier:
             weight_decay=0.01,
             logging_dir='./logs',
             logging_steps=10,
-            evaluation_strategy="epoch"
+            evaluation_strategy="no"
         )
 
         trainer = Trainer(
             model=self.model,
             args=training_args,
             train_dataset=train_dataset,
+            data_collator=data_collator
         )
 
         trainer.train()
