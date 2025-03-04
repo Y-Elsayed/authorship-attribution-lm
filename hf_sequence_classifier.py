@@ -56,7 +56,7 @@ class SequenceClassifier:
         trainer.train()
 
     def classify(self, sample):
-        inputs = self.tokenizer(sample, return_tensors="pt", truncation=True, max_length=self.max_length)
+        inputs = self.tokenizer(sample, padding=True, return_tensors="pt", truncation=True, max_length=self.max_length)
         with torch.no_grad():
             outputs = self.model(**inputs)
         pred= outputs.logits.argmax().item()
