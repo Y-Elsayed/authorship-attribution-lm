@@ -20,7 +20,7 @@ class AuthorsDataset(Dataset):
             return_tensors="pt"
         )
         return {
-            "input_ids": encoding["input_ids"].squeeze(),
-            "attention_mask": encoding["attention_mask"].squeeze(),
+            "input_ids": encoding["input_ids"].squeeze(0),
+            "attention_mask": encoding["attention_mask"].squeeze(0),
             "labels": torch.tensor(self.labels[idx], dtype=torch.long)
         }
