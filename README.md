@@ -1,4 +1,4 @@
-#Authorship Attribution using Language Models
+# Authorship Attribution using Language Models
 
 This project implements **authorship attribution** using **n-gram language models** with various smoothing techniques. It trains models on literary texts and classifies unseen text based on **perplexity scores**. The system supports **MLE, Absolute Discounting, Stupid Backoff, Laplace, and Kneser-Ney smoothing**.
 
