@@ -74,6 +74,7 @@ class NgramAuthorshipClassifier:
             predictions.append(self.classify(sample))
         if save_predictions:
             self.__save_predictions(predictions)
+        return predictions
 
     
     def __save_predictions(self,predictions, output_file = "predictions.txt"):
