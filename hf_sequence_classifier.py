@@ -43,7 +43,7 @@ class SequenceClassifier:
             weight_decay=0.01,
             logging_dir='./logs',
             logging_steps=10,
-            evaluation_strategy="no"
+            eval_strategy="no"
         )
 
         trainer = Trainer(
