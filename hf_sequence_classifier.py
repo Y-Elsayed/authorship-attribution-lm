@@ -2,16 +2,17 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer, Trai
 import torch
 from authors_dataset import AuthorsDataset
 from transformers import DataCollatorWithPadding
+import os
 
 class SequenceClassifier:
-    def __init__(self, num_labels, model_name="bert-base-uncased",max_length=512):
+    def __init__(self, num_labels, model_name="bert-base-uncased",max_length=512,output_dir='./results'):
         self.num_labels = num_labels
         self.model_name = model_name
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.max_length = max_length
 
-    def train(self, authors_data, epochs=3,batch_size=16):
+    def train(self, authors_data, epochs=3,batch_size=16, save_model = True):
 
         self.label2id = {label: i for i, label in enumerate(authors_data.keys())}
         self.id2label = {i: label for label, i in self.label2id.items()}
@@ -28,6 +29,8 @@ class SequenceClassifier:
 
         for author, samples in authors_data.items():
             for sample in samples:
+                if isinstance(sample, list): 
+                    sample = " ".join(sample)
                 train_texts.append(sample)
                 train_labels.append(self.label2id[author])
 
@@ -54,6 +57,11 @@ class SequenceClassifier:
         )
 
         trainer.train()
+
+        os.makedirs(self.output_dir, exist_ok=True)
+        self.model.save_pretrained(self.output_dir)
+        self.tokenizer.save_pretrained(self.output_dir)
+        print(f"Model and tokenizer saved to {self.output_dir}")
 
     def classify(self, sample):
         inputs = self.tokenizer(sample, padding=True, return_tensors="pt", truncation=True, max_length=self.max_length).to(self.device)
