@@ -1,7 +1,7 @@
 from nltk.lm import MLE, Laplace
-from nltk.lm.models import StupidBackoff, KneserNeyInterpolated
+from nltk.lm.models import KneserNeyInterpolated
 from nltk.util import ngrams
-from nltk.lm.preprocessing import padded_ngram_pipeline
+from nltk.lm.preprocessing import padded_everygram_pipeline
 from collections import Counter
 
 
@@ -19,13 +19,10 @@ class NgramAuthorshipClassifier:
         print("Training LMs... (this may take a while)")
         for k, v in authors_data.items():
 
-            train_data, vocab = padded_ngram_pipeline(self.n, v)
+            train_data, vocab = padded_everygram_pipeline(self.n, v)
             vocab_counter = Counter(vocab)
 
-
-            if self.smoothing == "sb":
-                model = StupidBackoff(order = self.n) 
-            elif self.smoothing == "lp":
+            if self.smoothing == "lp":
                 model = Laplace(order = self.n) 
             elif self.smoothing == "kn":
                 model = KneserNeyInterpolated(order=self.n)
