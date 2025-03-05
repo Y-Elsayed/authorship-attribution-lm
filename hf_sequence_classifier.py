@@ -3,10 +3,11 @@ import torch
 from authors_dataset import AuthorsDataset
 from transformers import DataCollatorWithPadding
 import os
+import random
+from sklearn.model_selection import train_test_split
 
 class SequenceClassifier:
-    def __init__(self, num_labels, model_name="bert-base-uncased",max_length=512,output_dir='./results'):
-        self.num_labels = num_labels
+    def __init__(self,  model_name="bert-base-uncased",max_length=512,output_dir='./results'):
         self.model_name = model_name
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -17,6 +18,7 @@ class SequenceClassifier:
 
         self.label2id = {label: i for i, label in enumerate(authors_data.keys())}
         self.id2label = {i: label for label, i in self.label2id.items()}
+        self.num_labels = len(authors_data.keys()) 
 
         self.model = AutoModelForSequenceClassification.from_pretrained(
         self.model_name,
@@ -35,25 +37,41 @@ class SequenceClassifier:
                 train_texts.append(sample)
                 train_labels.append(self.label2id[author])
 
-        train_dataset = AuthorsDataset(train_texts, train_labels, self.tokenizer, self.max_length)
-        data_collator = DataCollatorWithPadding(tokenizer=self.tokenizer, padding=True)
+        # Shuffle the data
+        combined = list(zip(train_texts, train_labels))
+        random.shuffle(combined)
+        train_texts, train_labels = map(list, zip(*combined))
 
+        train_texts, val_texts, train_labels, val_labels = train_test_split(
+        train_texts, train_labels, test_size=0.2, random_state=42
+        )
+
+        train_dataset = AuthorsDataset(train_texts, train_labels, self.tokenizer, self.max_length)
+        val_dataset = AuthorsDataset(val_texts, val_labels, self.tokenizer, self.max_length)
+        data_collator = DataCollatorWithPadding(tokenizer=self.tokenizer, pad_to_multiple_of=8)
+
+        warmup_steps = max(1, int(0.1 * len(train_dataset) / batch_size)) # 10% of train data
         training_args = TrainingArguments(
             output_dir='./results',
             num_train_epochs=epochs,
             per_device_train_batch_size=batch_size,
             per_device_eval_batch_size=batch_size,
-            warmup_steps=500,
+            warmup_steps=warmup_steps,
             weight_decay=0.01,
             logging_dir='./logs',
             logging_steps=10,
-            eval_strategy="no"
+            eval_strategy="epoch",
+            save_strategy="epoch",
+            save_steps=500,
+            save_total_limit=3,
+            load_best_model_at_end=True,
         )
 
         trainer = Trainer(
             model=self.model,
             args=training_args,
             train_dataset=train_dataset,
+            eval_dataset=val_dataset,
             data_collator=data_collator
         )
 
@@ -65,13 +83,15 @@ class SequenceClassifier:
             print(f"Model and tokenizer saved to {self.output_dir}")
 
     def classify(self, sample):
-        inputs = self.tokenizer(sample, padding=True, return_tensors="pt", truncation=True, max_length=self.max_length).to(self.device)
-        with torch.no_grad():
-            outputs = self.model(**inputs)
-        pred= outputs.logits.argmax(dim=1).tolist()
-        # pred_label = self.id2label.get(pred[0], "UNKNOWN_LABEL")
-        # print(f"Predicted author: {pred_label}") # Debugging
-        return [self.id2label.get(p, "UNKNOWN_LABEL") for p in pred]
+        try:
+            inputs = self.tokenizer(sample, padding=True, return_tensors="pt", truncation=True, max_length=self.max_length).to(self.device)
+            with torch.no_grad():
+                outputs = self.model(**inputs)
+            pred= outputs.logits.argmax(dim=1).tolist()[0]
+            return self.id2label.get(pred, "UNKNOWN_LABEL")
+        except Exception as e:
+            print(f"Error classifying sample: {sample}, error: {e}")
+            return "UNKNOWN_LABEL"
     
     def evaluate_devset(self, dev_data, show_accuracy = False):
         print("Results on dev set:")
@@ -83,9 +103,11 @@ class SequenceClassifier:
                 print(f"Skipping {author} (no test samples available)")
                 continue
             for sample in samples:
-                if self.classify(sample) == author:
+                classified = self.classify(sample)
+                if classified == author:
                     correct+=1
-            accuracy = correct/total
+                print("predicted:", classified, "actual:", author)
+            accuracy = correct/total if total > 0 else -1
             if show_accuracy:
                 print(f"{author} \t {accuracy*100:.2f}% correct")
             all_accuracies.append(accuracy)
