@@ -1,5 +1,5 @@
 from ngram_authorship_classifier import NgramAuthorshipClassifier
-from hf_sequence_classifier import HFSequenceClassifier
+from hf_sequence_classifier import SequenceClassifier
 from data_processor import DataProcessor
 import argparse
 
@@ -37,7 +37,7 @@ def main():
     if args.approach == "generative":
         model = NgramAuthorshipClassifier(n=1, smoothing = 'lp')
     else:
-        model = HFSequenceClassifier(num_labels=len(author_files))
+        model = SequenceClassifier()
 
     # Training the model
     model.train(authors_train_data)
@@ -48,4 +48,5 @@ def main():
     else:
         model.evaluate_devset(authors_test_data, show_accuracy=True)
 
-    
+if __name__ == '__main__':
+    main()
