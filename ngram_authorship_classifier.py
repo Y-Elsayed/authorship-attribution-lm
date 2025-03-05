@@ -3,7 +3,7 @@ from nltk.lm.models import KneserNeyInterpolated
 from nltk.util import ngrams
 from nltk.lm.preprocessing import padded_everygram_pipeline
 from collections import Counter
-
+import random
 
 
 
@@ -82,16 +82,21 @@ class NgramAuthorshipClassifier:
             for pred in predictions:
                 f.write(f"{pred}\n")
 
-    def __generate_text(self, author, num_words=20):
+    def __generate_text(self, author, prompt, num_words):
         model = self.models[author]
-        return " ".join(model.generate(num_words))
+        if not model:
+            raise ValueError(f"No trained model found for author: {author}")
+        
+        prompt_tokens = list(prompt.split())
+        context = prompt_tokens[-(self.n - 1):] if self.n > 1 else []
+        generated_tokens = model.generate(num_words, text_seed=context, random_seed=random.randint(1, 1000))
 
-    def generate_authors_text(self, prompts, num_words=20):
+        return " ".join(prompt_tokens + generated_tokens)
+
+    def generate_authors_text(self, prompts,authors, num_words=20):
         generated_texts = {}
 
-        for author, prompt in prompts.items():
-            generated_text = self.__generate_text(author, num_words)
-            generated_texts[author] = f"{prompt} {generated_text}"
-
+        for author in authors:
+                generated_texts[author] =  [self.__generate_text(author=author,prompt=prompt, num_words=num_words) for prompt in prompts]
         return generated_texts 
     
