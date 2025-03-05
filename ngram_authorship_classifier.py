@@ -38,7 +38,7 @@ class NgramAuthorshipClassifier:
             self.models[k] = model
 
 
-    def classify(self, sample):
+    def classify(self, sample, show_perplexity = True):
         ngrams_lst = list(ngrams(sample, self.n))
 
         perplexities = {}
@@ -48,7 +48,10 @@ class NgramAuthorshipClassifier:
             except ZeroDivisionError: # I added this the zero division error that occured when the perplexity was zero
                 perplexities[author] = float('inf')
 
-        return min(perplexities, key=perplexities.get)
+        min_perplexity = min(perplexities, key=perplexities.get)
+        if show_perplexity:
+            print(f"Author: {min_perplexity} \t Perplexity: {perplexities[min_perplexity]}")
+        return min_perplexity
 
     def evaluate_devset(self, dev_data, show_accuracy = False):
         print("Results on dev set:")
