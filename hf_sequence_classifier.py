@@ -11,6 +11,7 @@ class SequenceClassifier:
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.max_length = max_length
+        self.output_dir = output_dir
 
     def train(self, authors_data, epochs=3,batch_size=16, save_model = True):
 
@@ -57,18 +58,20 @@ class SequenceClassifier:
         )
 
         trainer.train()
-
-        os.makedirs(self.output_dir, exist_ok=True)
-        self.model.save_pretrained(self.output_dir)
-        self.tokenizer.save_pretrained(self.output_dir)
-        print(f"Model and tokenizer saved to {self.output_dir}")
+        if save_model:
+            os.makedirs(self.output_dir, exist_ok=True)
+            self.model.save_pretrained(self.output_dir)
+            self.tokenizer.save_pretrained(self.output_dir)
+            print(f"Model and tokenizer saved to {self.output_dir}")
 
     def classify(self, sample):
         inputs = self.tokenizer(sample, padding=True, return_tensors="pt", truncation=True, max_length=self.max_length).to(self.device)
         with torch.no_grad():
             outputs = self.model(**inputs)
-        pred= outputs.logits.argmax().item()
-        return self.id2label[pred]
+        pred= outputs.logits.argmax(dim=1).tolist()
+        # pred_label = self.id2label.get(pred[0], "UNKNOWN_LABEL")
+        # print(f"Predicted author: {pred_label}") # Debugging
+        return [self.id2label.get(p, "UNKNOWN_LABEL") for p in pred]
     
     def evaluate_devset(self, dev_data, show_accuracy = False):
         print("Results on dev set:")
