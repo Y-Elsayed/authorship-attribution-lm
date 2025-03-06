@@ -52,7 +52,7 @@ class SequenceClassifier:
 
         warmup_steps = max(1, int(0.1 * len(train_dataset) / batch_size)) # 10% of train data
         training_args = TrainingArguments(
-            output_dir='./results',
+            output_dir=self.output_dir,
             num_train_epochs=epochs,
             per_device_train_batch_size=batch_size,
             per_device_eval_batch_size=batch_size,
