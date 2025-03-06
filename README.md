@@ -37,7 +37,7 @@ This project implements **authorship attribution** using **n-gram language model
 ## Usage
 
 #### Requirements
-- Python Version 3.10.11
+- Python Version 3.10.*
 - Install the requirements.txt : `pip install -r requirements.txt`
   
 The main script `classifier.py` can be run with the following commands:
