@@ -15,12 +15,12 @@ class NgramAuthorshipClassifier:
         self.ngram_frequencies = {}
 
 
-    def train(self, authors_data): # not sure if this is the best way to pass the authors data but it will be a map of author to their processed text
+    def train(self, authors_data): 
         print("Training LMs... (this may take a while)")
         for author, texts in authors_data.items():
-            train_data = texts
-            vocab = set(word for text in train_data for word in text)
             
+            train_data, vocab = padded_everygram_pipeline(self.n, texts)
+
             if self.smoothing == "lp":
                 model = Laplace(self.n)
             elif self.smoothing == "kn":
@@ -32,8 +32,6 @@ class NgramAuthorshipClassifier:
             
             model.fit(train_data, vocab)
             self.models[author] = model
-            
-            self.ngram_frequencies[author] = self._compute_ngram_frequencies(train_data)
 
 
     def classify(self, sample, show_perplexity = False):
@@ -81,7 +79,8 @@ class NgramAuthorshipClassifier:
     def __save_predictions(self,predictions, output_file = "predictions.txt"):
         with open(output_file, "w") as f:
             for pred in predictions:
-                f.write(f"{pred}\n")
+                cleaned_pred = pred.replace(".txt", "")
+                f.write(f"{cleaned_pred}\n")
 
     def __generate_text(self, author, prompt, num_words):
         model = self.models[author]
@@ -100,18 +99,3 @@ class NgramAuthorshipClassifier:
         for author in authors:
                 generated_texts[author] =  [self.__generate_text(author=author,prompt=prompt, num_words=num_words) for prompt in prompts]
         return generated_texts 
-    
-    def _compute_ngram_frequencies(self, train_data):
-        ngram_counter = Counter()
-        for sentence in train_data:
-            ngrams = ngrams(sentence, self.n)
-            ngram_counter.update(ngrams)
-        return ngram_counter
-
-    def get_top_features(self, top_k=5):
-        top_features = {}
-        for author, ngram_counts in self.ngram_frequencies.items():
-            top_ngrams = ngram_counts.most_common(top_k)
-            top_features[author] = top_ngrams
-        return top_features
-    

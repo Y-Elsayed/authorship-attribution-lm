@@ -1,4 +1,4 @@
-from ngram_authorship_classifier import NgramAuthorshipClassifier
+from ngram_authorship_classifier_nltk import NgramAuthorshipClassifier
 from hf_sequence_classifier import SequenceClassifier
 from data_processor import DataProcessor
 import argparse
@@ -30,7 +30,7 @@ def main():
             authors_test_data[author_file] = testset 
     # If the test file is provided
     if args.test:
-        test_data = data_proc.process_file(args.test)
+        test_data,_ = data_proc.process_file(args.test)
     
     
     # Choosing the model according to the approach argument
@@ -41,7 +41,6 @@ def main():
 
     # Training the model
     model.train(authors_train_data)
-
     # Testing the model
     if args.test:
         model.predict(test_data)
