@@ -1,7 +1,8 @@
 from ngram_helper import MLE, Laplace, KneserNeyInterpolated, StupidBackoff, generate_ngrams #Inspired by NLTK framework
 from collections import Counter
 import random
-
+from nltk.corpus import stopwords
+import string
 
 
 class NgramAuthorshipClassifier:
@@ -109,9 +110,28 @@ class NgramAuthorshipClassifier:
         return ngram_counter
 
     def get_top_features(self, top_k=5):
+        stop_words = set(stopwords.words("english"))
+        # Got these by trial and err :')
+        special_tokens = {
+            "<s>", "</s>", "--", "’", "“", "”", "‘", "—", "…", "n't", "'s", "'m", "'re", "'ve", "'ll", "'d"
+        } 
+
         top_features = {}
+
         for author, ngram_counts in self.ngram_frequencies.items():
-            top_ngrams = ngram_counts.most_common(top_k)
-            top_features[author] = top_ngrams
+            filtered_ngrams = [
+                (ngram, count)
+                for ngram, count in ngram_counts.most_common()
+                if not any(
+                    word in string.punctuation or
+                    word.lower() in stop_words or 
+                    word in special_tokens or 
+                    word.strip() == "" 
+                    for word in ngram
+                )
+            ]
+
+            top_features[author] = filtered_ngrams[:top_k]
+
         return top_features
     
