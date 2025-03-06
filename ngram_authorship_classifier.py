@@ -1,7 +1,4 @@
-from nltk.lm import MLE, Laplace
-from nltk.lm.models import KneserNeyInterpolated
-from nltk.util import ngrams
-from nltk.lm.preprocessing import padded_everygram_pipeline
+from ngram_helper import MLE, Laplace, KneserNeyInterpolated, StupidBackoff, generate_ngrams #Inspired by NLTK framework
 from collections import Counter
 import random
 
@@ -13,30 +10,34 @@ class NgramAuthorshipClassifier:
         self.n = int(n)
         self.smoothing = smoothing
         self.models = {}
+        self.ngram_frequencies = {}
 
 
     def train(self, authors_data): # not sure if this is the best way to pass the authors data but it will be a map of author to their processed text
         print("Training LMs... (this may take a while)")
-        for k, v in authors_data.items():
-
-            train_data, vocab = padded_everygram_pipeline(self.n, v)
-            vocab_counter = Counter(vocab)
-
+        for author, texts in authors_data.items():
+            train_data = texts
+            vocab = set(word for text in train_data for word in text)
+            
             if self.smoothing == "lp":
-                model = Laplace(order = self.n) 
+                model = Laplace(self.n)
             elif self.smoothing == "kn":
-                model = KneserNeyInterpolated(order=self.n)
+                model = KneserNeyInterpolated(self.n)
+            elif self.smoothing == "sb":
+                model = StupidBackoff(self.n)
             else:
                 if self.smoothing != "mle":
                     print(f"The {self.smoothing} smoothing is not supported. Defaulting to MLE")
                 model = MLE(self.n)
             
-            model.fit(train_data, vocab_counter)
-            self.models[k] = model
+            model.fit(train_data, vocab)
+            self.models[author] = model
+            
+            self.ngram_frequencies[author] = self._compute_ngram_frequencies(train_data)
 
 
-    def classify(self, sample, show_perplexity = True):
-        ngrams_lst = list(ngrams(sample, self.n))
+    def classify(self, sample, show_perplexity = False):
+        ngrams_lst = list(generate_ngrams(sample, self.n))
 
         perplexities = {}
         for author, model in self.models.items():
@@ -52,8 +53,8 @@ class NgramAuthorshipClassifier:
 
     def evaluate_devset(self, dev_data, show_accuracy = False):
         print("Results on dev set:")
+        all_accuracies = []
         for author, samples in dev_data.items():
-            all_accuracies = []
             correct = 0
             total = len(samples)
             if total == 0: 
@@ -99,4 +100,18 @@ class NgramAuthorshipClassifier:
         for author in authors:
                 generated_texts[author] =  [self.__generate_text(author=author,prompt=prompt, num_words=num_words) for prompt in prompts]
         return generated_texts 
+    
+    def _compute_ngram_frequencies(self, train_data):
+        ngram_counter = Counter()
+        for sentence in train_data:
+            ngrams = generate_ngrams(sentence, self.n)
+            ngram_counter.update(ngrams)
+        return ngram_counter
+
+    def get_top_features(self, top_k=5):
+        top_features = {}
+        for author, ngram_counts in self.ngram_frequencies.items():
+            top_ngrams = ngram_counts.most_common(top_k)
+            top_features[author] = top_ngrams
+        return top_features
     
