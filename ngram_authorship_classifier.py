@@ -94,8 +94,9 @@ class NgramAuthorshipClassifier:
 
         return " ".join(prompt_tokens + generated_tokens)
 
-    def generate_authors_text(self, prompts, authors, num_words=20):
+    def generate_authors_text(self, prompts,authors, num_words=20):
         generated_texts = {}
+
         for author in authors:
                 generated_texts[author] =  [self.__generate_text(author=author,prompt=prompt, num_words=num_words) for prompt in prompts]
         return generated_texts 
