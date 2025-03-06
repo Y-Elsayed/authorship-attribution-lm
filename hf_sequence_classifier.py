@@ -106,7 +106,6 @@ class SequenceClassifier:
                 classified = self.classify(sample)
                 if classified == author:
                     correct+=1
-                print("predicted:", classified, "actual:", author)
             accuracy = correct/total if total > 0 else -1
             if show_accuracy:
                 print(f"{author} \t {accuracy*100:.2f}% correct")
