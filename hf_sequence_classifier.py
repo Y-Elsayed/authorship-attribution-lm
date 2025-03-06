@@ -7,7 +7,7 @@ import random
 from sklearn.model_selection import train_test_split
 
 class SequenceClassifier:
-    def __init__(self,  model_name="bert-base-uncased",max_length=512,output_dir='./results'):
+    def __init__(self,  model_name="distilbert-base-uncased",max_length=512,output_dir='./results'):
         self.model_name = model_name
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
