@@ -10,3 +10,4 @@ results_backup/
 results/
 *.json
 colab/
+*.pdf
