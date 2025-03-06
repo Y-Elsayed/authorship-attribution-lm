@@ -95,8 +95,8 @@ class SequenceClassifier:
     
     def evaluate_devset(self, dev_data, show_accuracy = False):
         print("Results on dev set:")
+        all_accuracies = []
         for author, samples in dev_data.items():
-            all_accuracies = []
             correct = 0
             total = len(samples)
             if total == 0: 
